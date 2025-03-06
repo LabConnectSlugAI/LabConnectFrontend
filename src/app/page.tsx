@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import Link from "next/link";
 import styles from "./page.module.css";
 import { supabase } from "../../lib/supabaseClient";
@@ -34,6 +34,7 @@ interface ResumeDetails {
 
 export default function LabSearch() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const fileRef = useRef<File | null>(null); // Ref for synchronous file access
   const [labs, setLabs] = useState<LabAnalysis[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -48,6 +49,7 @@ export default function LabSearch() {
         file.type === "image/jpeg")
     ) {
       setSelectedFile(file);
+      fileRef.current = file; // update the ref immediately
       console.log("Selected file:", file);
     } else {
       alert("Please upload a valid PDF, PNG, or JPEG file.");
@@ -56,10 +58,13 @@ export default function LabSearch() {
 
   const handleRemoveFile = () => {
     setSelectedFile(null);
+    fileRef.current = null;
   };
 
   const processFileAndFetchLabs = async () => {
-    if (!selectedFile) {
+    // Use the file from the ref to ensure it's available
+    const file = fileRef.current;
+    if (!file) {
       setError("Please upload a file");
       return;
     }
@@ -77,7 +82,7 @@ export default function LabSearch() {
           resolve(result.split(",")[1]);
         };
         reader.onerror = () => reject("Error reading file");
-        reader.readAsDataURL(selectedFile);
+        reader.readAsDataURL(file);
       });
 
       // First LLM call: Extract resume details (major and keywords)
@@ -87,7 +92,9 @@ export default function LabSearch() {
           {
             role: "system",
             content:
-              "Extract the academic major and key skills or research interests from this document. Respond in the format: Major: <major>\nKeywords: <comma-separated keywords>.",
+              `Extract the academic major and key skills or research interests from this document. The document will either be a resume or a transcript for a student at UC Santa Cruz
+              who is interested in lab opportunities. Parse through the document to understand the student's skills, interests, background, and experience to find the best labs for them.
+              Respond in the format: Major: <major>\nKeywords: <comma-separated keywords>.`,
           },
           {
             role: "user",
@@ -95,12 +102,12 @@ export default function LabSearch() {
               {
                 type: "text",
                 text:
-                  "Analyze this document and extract the most relevant academic major along with additional keywords that represent skills or interests.",
+                  "Analyze this document and extract the most relevant academic major along with additional keywords that represent skills or interests for the given student's resume or transcript.",
               },
               {
                 type: "image_url",
                 image_url: {
-                  url: `data:${selectedFile.type};base64,${b64}`,
+                  url: `data:${file.type};base64,${b64}`,
                   detail: "auto",
                 },
               },
@@ -135,7 +142,6 @@ export default function LabSearch() {
       if (!allLabs?.length) throw new Error("No labs found");
 
       // Second LLM call: Compare resume details with lab descriptions
-      // Updated prompt: Request analysis for every lab in the provided list.
       const comparisonResponse = await openai.chat.completions.create({
         model: "gpt-4-turbo",
         messages: [
@@ -143,11 +149,10 @@ export default function LabSearch() {
             role: "system",
             content: `Analyze the following details about a UC Santa Cruz student and compare them with these lab descriptions.
 For each lab in the list, provide:
-- A similarity score between 1 and 5
-- A match reason with short bullet points explaining why the lab is a good match.
-Return analysis for EVERY lab provided.
-Consider the applicant's major ("${resumeDetails.major}") and keywords ("${resumeDetails.keywords}") in your analysis.
-Respond in the following format for each lab:
+- A similarity score (an integer between 1 and 5).
+- A concise match reason (no more than about 20 words) explaining why the lab is a good match for the student.
+Strongly consider the applicant's major ("${resumeDetails.major}") and keywords ("${resumeDetails.keywords}") when performing your analysis.
+Respond in the following exact format for each lab: 
 Lab ID: <id>
 Similarity Score: <score>
 Match Reason: <reason>
@@ -168,7 +173,7 @@ ${JSON.stringify(allLabs, null, 2)}`,
               {
                 type: "image_url",
                 image_url: {
-                  url: `data:${selectedFile.type};base64,${b64}`,
+                  url: `data:${file.type};base64,${b64}`,
                   detail: "high",
                 },
               },
@@ -187,9 +192,9 @@ ${JSON.stringify(allLabs, null, 2)}`,
       const labAnalysis = analysisContent
         .split("---")
         .map((block) => {
-          const idMatch = block.match(/Lab ID:\s*(\d+)/);
-          const scoreMatch = block.match(/Similarity Score:\s*(\d+)/);
-          const reasonMatch = block.match(/Match Reason:\s*([\s\S]+)/);
+          const idMatch = block.match(/Lab\s*ID:\s*(\d+)/i);
+          const scoreMatch = block.match(/Similarity\s*Score:\s*(\d+)/i);
+          const reasonMatch = block.match(/Match\s*Reason:\s*([\s\S]+)/i);
           if (!idMatch || !scoreMatch || !reasonMatch) return null;
           return {
             id: parseInt(idMatch[1]),
@@ -204,7 +209,6 @@ ${JSON.stringify(allLabs, null, 2)}`,
       }[];
 
       // Merge lab analysis with original lab data and sort by similarity score descending.
-      // If a lab did not receive analysis from the LLM, include it with a default score of 0.
       const enhancedLabs = allLabs.map((lab: LabAnalysis) => {
         const analysis = labAnalysis.find((l) => l.id === lab.id);
         return {
@@ -217,7 +221,7 @@ ${JSON.stringify(allLabs, null, 2)}`,
           (b.similarity_score || 0) - (a.similarity_score || 0)
       );
 
-      // Filter labs to only include those with a similarity score of 4 or higher
+      // Filter labs to only include those with a similarity score of 3 or higher
       const highMatchLabs = enhancedLabs.filter(
         (lab: LabAnalysis) => lab.similarity_score && lab.similarity_score >= 3
       );
@@ -361,7 +365,7 @@ ${JSON.stringify(allLabs, null, 2)}`,
                   key={lab.id} 
                   className={styles.compiledCard} 
                   style={{ "--index": index } as React.CSSProperties}
-                  data-top-match={lab.similarity_score && lab.similarity_score >= 2 ? "true" : "false"}
+                  data-top-match={lab.similarity_score && lab.similarity_score >= 3 ? "true" : "false"}
                 >
                   <span className={styles.rankBadge}>{index + 1}</span>
                   <h3 className={styles.compiledLabName}>{lab["Lab Name"]}</h3>
@@ -378,8 +382,17 @@ ${JSON.stringify(allLabs, null, 2)}`,
                     </span>
                   </div>
                   <div className={styles.compiledDescription}>
+                    <p><strong>Match Reason: </strong></p>
+                    <p>{lab.match_reason}</p>
+                  </div>
+                  <div className={styles.compiledDescription}>
                     <p><strong>Description:</strong></p>
-                    <p>{lab.Description}</p>
+                    <p className={styles.truncatedDescription}>
+                      {lab.Description.split(" ").slice(0, 30).join(" ")}...
+                    </p>
+                    <Link href={`/lab/${lab.id}`} className={styles.moreButton}>
+                      More
+                    </Link>
                   </div>
                   <div className={styles.compiledApplication}>
                     <p><strong>How to apply:</strong></p>
