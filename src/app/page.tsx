@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import styles from "./page.module.css";
 import { supabase } from "../../lib/supabaseClient";
@@ -34,12 +34,26 @@ interface ResumeDetails {
 
 export default function LabSearch() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const fileRef = useRef<File | null>(null); // Ref for synchronous file access
+  const fileRef = useRef<File | null>(null);
   const [labs, setLabs] = useState<LabAnalysis[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Allow PDF, PNG, and JPEG files.
+  // Load labs from localStorage on component mount
+  useEffect(() => {
+    const savedLabs = localStorage.getItem("savedLabs");
+    if (savedLabs) {
+      setLabs(JSON.parse(savedLabs));
+    }
+  }, []);
+
+  // Save labs to localStorage whenever labs state changes
+  useEffect(() => {
+    if (labs.length > 0) {
+      localStorage.setItem("savedLabs", JSON.stringify(labs));
+    }
+  }, [labs]);
+
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (
@@ -49,7 +63,7 @@ export default function LabSearch() {
         file.type === "image/jpeg")
     ) {
       setSelectedFile(file);
-      fileRef.current = file; // update the ref immediately
+      fileRef.current = file;
       console.log("Selected file:", file);
     } else {
       alert("Please upload a valid PDF, PNG, or JPEG file.");
@@ -62,7 +76,6 @@ export default function LabSearch() {
   };
 
   const processFileAndFetchLabs = async () => {
-    // Use the file from the ref to ensure it's available
     const file = fileRef.current;
     if (!file) {
       setError("Please upload a file");
@@ -73,7 +86,6 @@ export default function LabSearch() {
     setLabs([]);
 
     try {
-      // Convert file to base64
       const b64 = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = () => {
@@ -85,16 +97,13 @@ export default function LabSearch() {
         reader.readAsDataURL(file);
       });
 
-      // First LLM call: Extract resume details (major and keywords)
       const resumeResponse = await openai.chat.completions.create({
         model: "gpt-4-turbo",
         messages: [
           {
             role: "system",
             content:
-              `Extract the academic major and key skills or research interests from this document. The document will either be a resume or a transcript for a student at UC Santa Cruz
-              who is interested in lab opportunities. Parse through the document to understand the student's skills, interests, background, and experience to find the best labs for them.
-              Respond in the format: Major: <major>\nKeywords: <comma-separated keywords>.`,
+              "Extract the academic major and key skills or research interests from this document. The document will either be a resume or a transcript for a student at UC Santa Cruz who is interested in lab opportunities. Parse through the document to understand the student's skills, interests, background, and experience to find the best labs for them. Respond in the format: Major: <major>\nKeywords: <comma-separated keywords>.",
           },
           {
             role: "user",
@@ -121,7 +130,6 @@ export default function LabSearch() {
         resumeResponse.choices[0]?.message?.content?.trim();
       if (!resumeContent) throw new Error("Failed to extract resume details");
 
-      // Parse the text response
       const majorMatch = resumeContent.match(/Major:\s*(.+)/);
       const keywordsMatch = resumeContent.match(/Keywords:\s*(.+)/);
 
@@ -134,21 +142,18 @@ export default function LabSearch() {
         keywords: keywordsMatch[1].trim(),
       };
 
-      // Fetch all labs from Supabase
       const { data: allLabs, error: supabaseError } = await supabase
         .from("labconnect")
         .select();
       if (supabaseError) throw supabaseError;
       if (!allLabs?.length) throw new Error("No labs found");
 
-      // Second LLM call: Compare resume details with lab descriptions
       const comparisonResponse = await openai.chat.completions.create({
         model: "gpt-4-turbo",
         messages: [
           {
             role: "system",
-            content: `Analyze the following details about a UC Santa Cruz student and compare them with these lab descriptions.
-For each lab in the list, provide:
+            content: `Analyze the following details about a UC Santa Cruz student and compare them with these lab descriptions. For each lab in the list, provide:
 - A similarity score (an integer between 1 and 5).
 - A concise match reason (no more than about 20 words) explaining why the lab is a good match for the student.
 Strongly consider the applicant's major ("${resumeDetails.major}") and keywords ("${resumeDetails.keywords}") when performing your analysis.
@@ -188,7 +193,6 @@ ${JSON.stringify(allLabs, null, 2)}`,
       if (!analysisContent)
         throw new Error("Failed to get lab analysis from LLM");
 
-      // Parse the LLM response into an array of lab analyses
       const labAnalysis = analysisContent
         .split("---")
         .map((block) => {
@@ -208,7 +212,6 @@ ${JSON.stringify(allLabs, null, 2)}`,
         match_reason: string;
       }[];
 
-      // Merge lab analysis with original lab data and sort by similarity score descending.
       const enhancedLabs = allLabs.map((lab: LabAnalysis) => {
         const analysis = labAnalysis.find((l) => l.id === lab.id);
         return {
@@ -221,12 +224,10 @@ ${JSON.stringify(allLabs, null, 2)}`,
           (b.similarity_score || 0) - (a.similarity_score || 0)
       );
 
-      // Filter labs to only include those with a similarity score of 3 or higher
       const highMatchLabs = enhancedLabs.filter(
-        (lab: LabAnalysis) => lab.similarity_score && lab.similarity_score >= 3
+        (lab: LabAnalysis) => lab.similarity_score && lab.similarity_score >= 4
       );
 
-      // Display all labs.
       setLabs(highMatchLabs);
     } catch (err) {
       console.error("Error processing file:", err);
@@ -355,57 +356,57 @@ ${JSON.stringify(allLabs, null, 2)}`,
           </div>
         )}
 
-        {/* Recommended Labs Grid */}
-        {labs.length > 0 && (
-          <div className={styles.recommendedSection}>
-            <h2>Recommended Labs for You</h2>
-            <div className={styles.compiledGrid}>
-              {labs.map((lab, index) => (
-                <div 
-                  key={lab.id} 
-                  className={styles.compiledCard} 
-                  style={{ "--index": index } as React.CSSProperties}
-                  data-top-match={lab.similarity_score && lab.similarity_score >= 3 ? "true" : "false"}
-                >
-                  <span className={styles.rankBadge}>{index + 1}</span>
-                  <h3 className={styles.compiledLabName}>{lab["Lab Name"]}</h3>
-                  <p className={styles.compiledProfessor}>
-                    <strong>Prof.</strong> {lab["Professor Name"]}
-                  </p>
-                  <p className={styles.compiledDepartment}>
-                    <strong>Department:</strong> {lab.Department}
-                  </p>
-                  <div className={styles.compiledScore}>
-                    Match Score: 
-                    <span style={{ marginLeft: '8px', color: lab.similarity_score ? '#2ecc71' : '#ff6b6b' }}>
-                      {lab.similarity_score}/5
-                    </span>
-                  </div>
-                  <div className={styles.compiledDescription}>
-                    <p><strong>Match Reason: </strong></p>
-                    <p>{lab.match_reason}</p>
-                  </div>
-                  <div className={styles.compiledDescription}>
-                    <p><strong>Description:</strong></p>
-                    <p className={styles.truncatedDescription}>
-                      {lab.Description.split(" ").slice(0, 30).join(" ")}...
-                    </p>
-                    <Link href={`/lab/${lab.id}`} className={styles.moreButton}>
-                      More
-                    </Link>
-                  </div>
-                  <div className={styles.compiledApplication}>
-                    <p><strong>How to apply:</strong></p>
-                    <p>{lab["How to apply"]}</p>
-                  </div>
-                  <div className={styles.compiledContact}>
-                    <p><strong>Contact:</strong> {lab.Contact}</p>
-                  </div>
-                </div>
-              ))}
+{/* Recommended Labs Grid */}
+{labs.length > 0 && (
+  <div className={styles.recommendedSection}>
+    <h2 className={styles.sectionTitle}>Recommended Labs for You</h2>
+    <div className={styles.gridContainer}>
+      {labs.map((lab, index) => (
+        <Link 
+          key={lab.id} 
+          href={`/directory/${lab.id}`} 
+          className={styles.labCardLink} 
+        >
+          <div 
+            className={styles.labCard} 
+            style={{ "--index": index } as React.CSSProperties}
+            data-top-match={lab.similarity_score && lab.similarity_score >= 4 ? "true" : "false"}
+          >
+            {/* Rank Badge */}
+            <span className={styles.rankBadge}>{index + 1}</span>
+
+            {/* Lab Name */}
+            <h3 className={styles.labName}>{lab["Lab Name"]}</h3>
+
+            {/* Professor Name */}
+            <p className={styles.professor}><strong>Prof.</strong> {lab["Professor Name"]}</p>
+
+            {/* Department */}
+            <p className={styles.department}><strong>Department:</strong> {lab.Department}</p>
+
+            {/* Match Score */}
+            <div className={styles.matchScore}>
+              Match Score: 
+              <span 
+                className={`${styles.scoreBadge} ${lab.similarity_score ? styles.highScore : styles.lowScore}`}
+              >
+                {lab.similarity_score}/5
+              </span>
+            </div>
+
+            {/* Match Reason */}
+            <div className={styles.descriptionBox}>
+              <p><strong>Match Reason:</strong></p>
+              <p>{lab.match_reason}</p>
             </div>
           </div>
-        )}
+        </Link>
+      ))}
+    </div>
+  </div>
+)}
+
+
 
         {/* No labs message */}
         {!loading && !error && labs.length === 0 && (

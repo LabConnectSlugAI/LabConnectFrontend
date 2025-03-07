@@ -31,11 +31,11 @@
 }
 
 .labConnect {
-  color: #1a365d;
+  color: #1a3457;
 }
 
 .ucsc {
-  color: #ecc94b;
+  color: #e7b71b;
 }
 
 .taglineContainer {
@@ -64,9 +64,9 @@
 }
 
 .uploadButton {
-  background-color: #fef9c3;
-  color: #1a202c;
-  font-weight: 500;
+  background-color: #24528f; /* Replaced yellow with white */
+  color: #ffffff;
+  font-weight: 700;
   padding: 0.75rem 1.5rem;
   border-radius: 9999px;
   display: flex;
@@ -79,7 +79,7 @@
 }
 
 .uploadButton:hover {
-  background-color: #fde68a;
+  background-color: #1a3457; /* Replaced yellow with white */
 }
 
 .uploadIcon {
@@ -132,12 +132,15 @@
 }
 
 .connectButton {
-  background-color: #fcd34d;
-  color: #1a202c;
+  background-color: #24528f; /* Replaced yellow with white */
+  color: #ffffff;
   font-weight: 700;
-  padding: 0.75rem 2rem;
-  border-radius: 0.75rem;
+  padding: 0.75rem 1.5rem;
+  border-radius: 9999px;
   font-size: 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border: none;
   cursor: pointer;
   transition: background-color 0.2s;
@@ -145,8 +148,12 @@
   margin: 0 auto 4rem auto;
 }
 
+
 .connectButton:hover {
-  background-color: #fbbf24;
+  background-color: #1a3457; /* Replaced yellow with white */
+  transform: translateY(-5px);
+  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+
 }
 
 .footer {
@@ -240,7 +247,7 @@
   transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
   display: flex;
   flex-direction: column;
-  border-left: 4px solid #ffcc5c;
+  border-left: 4px solid #ffffff; /* Replaced yellow with white */
 }
 
 .compiledCard:hover {
@@ -291,7 +298,7 @@
 
 /* For top matches (score 4-5) */
 .compiledCard[data-top-match="true"] {
-  border-left: 4px solid #2ecc71; /* Green for top matches */
+  border-left: 4px solid #043c85; /* Green for top matches */
 }
 
 /* Add animation for a bit of visual flair */
@@ -304,4 +311,109 @@
   animation: fadeIn 0.3s ease-out forwards;
   animation-delay: calc(var(--index) * 0.1s);
   opacity: 0;
+}
+
+.recommendedSection {
+  margin-top: 20px;
+}
+
+.sectionTitle {
+  font-size: 1.8rem;
+  font-weight: bold;
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.gridContainer {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); /* Responsive grid */
+  gap: 20px;
+  padding: 20px;
+}
+
+.labCard {
+  background: rgb(208, 210, 211);
+  padding: 16px;
+  border-radius: 12px;
+  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+  border: 1px solid #ddd;
+  transition: transform 0.2s ease-in-out, border 0.2s ease-in-out;
+
+  /* Set a fixed height */
+  min-height: 350px; /* Adjust this as needed */
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between; /* Ensures content is evenly distributed */
+}
+
+.labCard:hover {
+  transform: translateY(-5px);
+  border: 1px solid #007bff; /* Outline changes color on hover */
+}
+
+
+.labName {
+  font-size: 20px;
+  font-weight: bold;
+  margin-top: 10px;
+  text-align: center; /* Ensures text alignment inside */
+  max-width: 90%; /* Prevents overflowing */
+  word-wrap: break-word; /* Keeps long names inside the box */
+}
+
+.professor, .department {
+  font-size: 1rem;
+  color: #000000;
+  margin-top: 5px;
+}
+
+.matchScore {
+  font-weight: bold;
+  margin-top: 10px;
+}
+
+.scoreBadge {
+  margin-left: 8px;
+  padding: 4px 8px;
+  border-radius: 8px;
+  font-weight: bold;
+}
+
+.highScore {
+  background: #001d9f;
+  color: #fff;
+}
+
+.lowScore {
+  background: #ff6b6b;
+  color: #fff;
+}
+
+.descriptionBox {
+  margin-top: 10px;
+}
+
+.truncatedText {
+  color: #777;
+}
+
+.moreButton {
+  display: inline-block;
+  margin-top: 5px;
+  padding: 6px 12px;
+  background: #007bff;
+  color: white;
+  border-radius: 6px;
+  text-decoration: none;
+  font-weight: bold;
+}
+
+.moreButton:hover {
+  background: #0056b3;
+}
+
+.contact, .application {
+  margin-top: 10px;
+  font-size: 0.9rem;
+  color: #333;
 }

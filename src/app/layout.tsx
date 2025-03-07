@@ -35,15 +35,14 @@ export default function RootLayout({
             }}
           >
             <div style={{ display: "flex", alignItems: "center" }}>
-              <h1>
-                <span style={{ fontWeight: "bold", color: "#1a365d" }}>
-                  Lab
-                </span>
-                <span style={{ fontWeight: "bold", color: "#1a365d" }}>
-                  Connect
-                </span>{" "}
-                <span style={{ color: "#4a5568" }}>UCSC</span>
-              </h1>
+            <h1>
+              <span style={{ fontWeight: "bold", color: "#1a365d" }}>
+                Slug
+              </span>{" "}
+              <span style={{ fontWeight: "bold", color: "#1a365d" }}>
+                Labs
+              </span>{" "}
+            </h1>
             </div>
             <nav style={{ display: "flex", gap: "1rem" }}>
               <Link
@@ -90,28 +89,7 @@ export default function RootLayout({
                 marginBottom: "0.5rem",
               }}
             >
-              <a
-                href="/about"
-                style={{ color: "#4a5568", textDecoration: "none" }}
-              >
-                About Us
-              </a>
-              <a
-                href="/contact"
-                style={{ color: "#4a5568", textDecoration: "none" }}
-              >
-                Contact
-              </a>
-              <a
-                href="/privacy"
-                style={{ color: "#4a5568", textDecoration: "none" }}
-              >
-                Privacy Policy
-              </a>
             </div>
-            <p style={{ color: "#718096", fontSize: "0.875rem" }}>
-              Contact us at: info@labconnect.ucsc.edu
-            </p>
           </div>
         </footer>
       </body>

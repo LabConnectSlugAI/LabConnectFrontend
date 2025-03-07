@@ -88,6 +88,9 @@ export default function LabProfile() {
               <a href="./" className="back-button">
                 Back to Lab Directory
               </a>
+              <a href="./../" className="back-button">
+                Back to Home
+              </a>
             </div>
           </div>
         </div>
@@ -186,7 +189,7 @@ export default function LabProfile() {
         .apply-button {
           display: block;
           width: 90%;
-          background-color: #fcd34d;
+          background-color: #e7b71b;
           border: none;
           color: black;
           padding: 12px 20px;

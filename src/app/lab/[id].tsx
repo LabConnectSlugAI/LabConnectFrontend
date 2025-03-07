@@ -1,7 +1,8 @@
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
-import { supabase } from "../../../../lib/supabaseClient";
-import styles from "../../styles/lab.module.css";
+import { useParams } from "next/navigation";
+import { supabase } from "../../../lib/supabaseClient";
+import styles from "../../lab.module.css";
 
 export default function LabDetails() {
   const router = useRouter();
