@@ -10,10 +10,13 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.49.1",
-    "next": "15.1.7",
-    "openai": "^4.86.1",
+    "dotenv": "^16.4.7",
+    "next": "^15.1.7",
+    "npm": "^11.2.0",
+    "openai": "^4.86.2",
     "papaparse": "^5.5.2",
     "pdf-parse": "^1.1.1",
+    "pdfjs-dist": "^4.10.38",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },

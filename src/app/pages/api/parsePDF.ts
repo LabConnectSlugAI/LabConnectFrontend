@@ -1,25 +1,51 @@
-import pdf from "pdf-parse";
 import { NextApiRequest, NextApiResponse } from "next";
+import { getDocument, GlobalWorkerOptions } from "pdfjs-dist";
+
+// Set the worker source for pdfjs-dist
+GlobalWorkerOptions.workerSrc = "/pdf.worker.min.js";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method Not Allowed" });
+    return res.status(405).json({ error: "Method not allowed" });
   }
 
   try {
-    // Ensure we are receiving a base64 file string
     const { file } = req.body;
+
+    // Check if the file is provided
     if (!file) {
-      return res.status(400).json({ error: "No file provided" });
+      return res.status(400).json({ error: "No file uploaded" });
     }
 
-    // Convert base64 string to Buffer
-    const fileBuffer = Buffer.from(file, "base64");
-    const data = await pdf(fileBuffer);
+    // Validate base64 string
+    const base64Pattern = /^([A-Za-z0-9+/=]){1,}/;
+    if (!base64Pattern.test(file)) {
+      return res.status(400).json({ error: "Invalid base64 string" });
+    }
 
-    return res.status(200).json({ text: data.text });
+    // Convert base64 to buffer
+    const fileBuffer = Buffer.from(file, "base64");
+
+    // Load the PDF document
+    const pdf = await getDocument({ data: fileBuffer }).promise;
+
+    let text = "";
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const content = await page.getTextContent();
+
+      // Filter out TextMarkedContent and only use TextItem
+      text += content.items
+        .filter((item) => "str" in item) // Ensure the item has a `str` property
+        .map((item) => (item as { str: string }).str) // Type assertion for TypeScript
+        .join(" ");
+    }
+
+    console.log("Extracted text:", text); // Log the extracted text
+
+    res.status(200).json({ text });
   } catch (error) {
     console.error("Error parsing PDF:", error);
-    return res.status(500).json({ error: "Failed to process PDF" });
+    res.status(500).json({ error: "Failed to parse PDF" });
   }
 }

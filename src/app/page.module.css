@@ -6,6 +6,12 @@
   min-height: 100vh;
 }
 
+.centerButton {
+  display: flex;
+  justify-content: center;
+}
+
+
 .navLink {
   font-size: 1.125rem;
   font-weight: 500;
@@ -132,28 +138,80 @@
 }
 
 .connectButton {
-  background-color: #24528f; /* Replaced yellow with white */
-  color: #ffffff;
-  font-weight: 700;
-  padding: 0.75rem 1.5rem;
-  border-radius: 9999px;
-  font-size: 1.25rem;
+  background-color: #24528f;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.2s ease;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: none;
-  cursor: pointer;
-  transition: background-color 0.2s;
-  display: block;
-  margin: 0 auto 4rem auto;
+  gap: 8px;
 }
 
+.connectButton:hover:not(:disabled) {
+  background-color: #1a3457;
+  transform: scale(1.05);
+}
 
-.connectButton:hover {
-  background-color: #1a3457; /* Replaced yellow with white */
-  transform: translateY(-5px);
-  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+.connectButton:active:not(:disabled) {
+  transform: scale(0.95);
+}
 
+.connectButton:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+.loadingButton {
+  background-color: #0070f3;
+  cursor: wait;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.loadingIcon {
+  animation: spin 1s linear infinite;
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+/* Fade-in Animation for Labs Grid */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.loadingCircle {
+  opacity: 0.25;
+}
+
+.loadingPath {
+  opacity: 0.75;
 }
 
 .footer {
